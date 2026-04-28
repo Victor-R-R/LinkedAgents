@@ -1,11 +1,11 @@
 # LinkedAgents
 
-> A suite of 6 specialized Claude Code agents for managing your LinkedIn presence — from content creation to career discovery.
+> A suite of 6 specialized Claude Code agents + 1 orchestrator for managing your LinkedIn presence — from content creation to career discovery.
 
 ## Agents
 
-| Agent | File | Purpose |
-|-------|------|---------|
+| Agent | Skill | Purpose |
+|-------|-------|---------|
 | Post Agent | `post-agent/SKILL.md` | Draft and publish LinkedIn posts via API |
 | Jobs Agent | `jobs-agent/SKILL.md` | Search, score, and act on job listings |
 | Article Agent | `article-agent/SKILL.md` | Write long-form LinkedIn articles |
@@ -14,112 +14,163 @@
 | Profile Agent | `profile-agent/SKILL.md` | Audit and rewrite your LinkedIn profile |
 | Orchestrator | `orchestrator/SKILL.md` | Coordinate the full weekly workflow |
 
-## Installation (Claude Code)
+---
 
-### Option 1 — Script (recommended)
+## Requirements
 
-```bash
-git clone https://github.com/Victor-R-R/LinkedAgents.git
-cd LinkedAgents
-./install.sh
-```
+- [Claude Code](https://claude.ai/code) installed and authenticated
+- Python 3.x (for API calls — included on macOS/Linux)
+- `jq` installed: `brew install jq` (macOS) or `apt install jq` (Linux)
 
-The script checks for Claude Code, installs all agents to `~/.claude/skills/`, and guides you through the LinkedIn API setup.
+---
 
-### Option 2 — One-liner
+## Installation
+
+### Option 1 — One-liner (recommended)
 
 ```bash
 git clone https://github.com/Victor-R-R/LinkedAgents.git && cd LinkedAgents && ./install.sh
 ```
 
-### Option 3 — Manual (install only the agents you want)
+The script checks for Claude Code, installs all agents to `~/.claude/skills/`, and prints next steps.
+
+### Option 2 — Manual (pick only the agents you want)
 
 ```bash
+# Example: install only the post agent and design agent
 mkdir -p ~/.claude/skills/linkedin-post-agent
 cp post-agent/SKILL.md ~/.claude/skills/linkedin-post-agent/SKILL.md
-```
 
-Repeat for any agent you want.
+mkdir -p ~/.claude/skills/linkedin-design-agent
+cp design-agent/SKILL.md ~/.claude/skills/linkedin-design-agent/SKILL.md
+```
 
 ---
 
 ## LinkedIn API Setup
 
-### 1. Create your app
+You need a LinkedIn Developer app to publish posts via API. This is a one-time setup.
 
-1. Go to [LinkedIn Developer Portal](https://developer.linkedin.com/)
-2. Create a new app and add the **"Share on LinkedIn"** product
-3. Under OAuth 2.0, set your redirect URI (e.g. `http://localhost:3000/callback`)
+### Step 1 — Create a LinkedIn Developer App
 
-### 2. Required OAuth scopes
+1. Go to [LinkedIn Developer Portal](https://developer.linkedin.com/apps)
+2. Click **Create app** and fill in the details (your name, a LinkedIn Page, app logo)
+3. Under the **Products** tab, add **both** of these products:
+   - ✅ **Share on LinkedIn** — enables `w_member_social` (post publishing)
+   - ✅ **Sign In with LinkedIn using OpenID Connect** — enables `openid`, `profile`, `email` scopes
 
-| Scope | Purpose |
-|-------|---------|
-| `w_member_social` | Publish posts on your behalf |
-| `r_basicprofile` | Read your profile (name, headline) |
-| `openid` | OAuth 2.0 identity |
-| `profile` | Extended profile fields |
-| `email` | Your email address |
+> ⚠️ Both products are required. Without OpenID Connect, you cannot retrieve your Person ID.
 
-### 3. Generate a token
+### Step 2 — Generate an access token
 
-Go to: `https://www.linkedin.com/developers/tools/oauth/token-generator`
-
-Select scopes: `w_member_social`, `r_basicprofile`, `openid`, `profile`, `email`
+1. Go to [OAuth Token Generator](https://www.linkedin.com/developers/tools/oauth/token-generator)
+2. Select your app
+3. Check all available scopes: `w_member_social`, `openid`, `profile`, `email`
+4. Click **Request access token**
 
 You will receive:
 - **Access token** — valid for 60 days
-- **Refresh token** — valid for ~1 year (keep it safe)
+- **Refresh token** — valid for ~1 year (keep it safe for renewal)
 
-### 4. Get your Person ID
+### Step 3 — Get your Person ID
 
 ```bash
-curl -s -H "Authorization: Bearer $LINKEDIN_TOKEN" \
-     -H "LinkedIn-Version: 202410" \
+curl -s -H "Authorization: Bearer YOUR_TOKEN" \
+     -H "LinkedIn-Version: 202504" \
      https://api.linkedin.com/v2/userinfo | jq '{sub, name}'
-# "sub" = your Person ID
+# "sub" = your Person ID (looks like: "f-yME4Ji-J")
 ```
 
-### 5. Set environment variables
+### Step 4 — Set environment variables
 
-Add to `~/.zshrc`:
+Add to `~/.zshrc` (or `~/.bashrc`):
 
 ```bash
 export LINKEDIN_TOKEN="your_access_token"
-export LINKEDIN_PERSON_ID="your_person_id"         # The "sub" field from /v2/userinfo
-export LINKEDIN_REFRESH_TOKEN="your_refresh_token"
-export LINKEDIN_CLIENT_ID="your_app_client_id"
-export LINKEDIN_CLIENT_SECRET="your_app_secret"
-export LINKEDIN_TOKEN_DATE="2025-03-15"            # Date you generated the token
+export LINKEDIN_PERSON_ID="your_person_id"         # The "sub" field from Step 3
+export LINKEDIN_CLIENT_ID="your_app_client_id"     # From app Auth tab
+export LINKEDIN_CLIENT_SECRET="your_app_secret"    # From app Auth tab
+export LINKEDIN_REFRESH_TOKEN="your_refresh_token" # From Step 2
+export LINKEDIN_TOKEN_DATE="2026-04-28"            # Date you generated the token (YYYY-MM-DD)
 ```
 
 Then reload: `source ~/.zshrc`
 
-### 6. Refresh an expired token (before 60 days)
+### Step 5 — Verify everything works
 
 ```bash
-curl -s -X POST "https://www.linkedin.com/oauth/v2/accessToken" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=refresh_token&refresh_token=${LINKEDIN_REFRESH_TOKEN}&client_id=${LINKEDIN_CLIENT_ID}&client_secret=${LINKEDIN_CLIENT_SECRET}" \
-  | jq '{access_token, expires_in, refresh_token}'
-# Update LINKEDIN_TOKEN and LINKEDIN_TOKEN_DATE with the new values
+# Should print your name and person ID
+curl -s -H "Authorization: Bearer $LINKEDIN_TOKEN" \
+     -H "LinkedIn-Version: 202504" \
+     https://api.linkedin.com/v2/userinfo | jq '{sub, name}'
 ```
 
 ---
 
-## API Limitations
+## Refresh an expired token
 
-| Feature | Available | Notes |
-|---------|-----------|-------|
+Access tokens expire after 60 days. Use the refresh token to renew without re-authorizing:
+
+```bash
+curl -s -X POST "https://www.linkedin.com/oauth/v2/accessToken" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=refresh_token" \
+  -d "refresh_token=${LINKEDIN_REFRESH_TOKEN}" \
+  -d "client_id=${LINKEDIN_CLIENT_ID}" \
+  -d "client_secret=${LINKEDIN_CLIENT_SECRET}" \
+  | jq '{access_token, expires_in, refresh_token}'
+# Update LINKEDIN_TOKEN and LINKEDIN_TOKEN_DATE with the new values
+```
+
+The orchestrator warns you automatically when your token is within 10 days of expiry.
+
+---
+
+## API Reference
+
+| Feature | Status | Notes |
+|---------|--------|-------|
 | Publish posts | ✅ | `w_member_social` scope, `/rest/posts` endpoint |
-| Read own profile (basic) | ✅ | `/v2/userinfo` — name, headline, email |
+| Read own profile (basic) | ✅ | `/v2/userinfo` — name, sub (Person ID), email |
 | Edit profile sections | ❌ | Not available publicly — manual edits only |
+| List/read own posts | ❌ | Requires `r_member_social` (partner program only) |
 | Job search API | ❌ | Partner Program required — fallback to web search |
 | Follower analytics | ❌ | Partner Program required |
-| Publish articles | ✅ | Via post with article URL |
 
-> **API note**: This project uses the **Posts API** (`/rest/posts` with `LinkedIn-Version: 202410`).
-> The legacy `ugcPosts` endpoint is officially deprecated and no longer used.
+**Working API versions (tested April 2026):**
+- `/rest/posts` (publish) → `LinkedIn-Version: 202503`
+- `/v2/userinfo` (Person ID) → `LinkedIn-Version: 202504`
+
+> Versions `202504+` return HTTP 426 on `/rest/posts`. Use `202503` exactly.
+
+---
+
+## Usage
+
+Once installed, trigger agents in Claude Code by describing what you want:
+
+```
+"Draft a LinkedIn post about my open source project"
+→ Triggers: linkedin-post-agent
+
+"Find full-stack developer jobs in Paris"
+→ Triggers: linkedin-jobs-agent
+
+"Write an article about building a SaaS solo"
+→ Triggers: linkedin-article-agent
+
+"What's trending in EdTech this week?"
+→ Triggers: linkedin-research-agent
+
+"Design a post card with icons for my announcement"
+→ Triggers: linkedin-design-agent
+
+"Audit and rewrite my LinkedIn headline"
+→ Triggers: linkedin-profile-agent
+
+"Prepare my LinkedIn week"
+→ Triggers: linkedin-orchestrator
+```
 
 ---
 
@@ -144,50 +195,17 @@ All generated content is saved to `~/LinkedAgents/output/`:
 ```
 LinkedAgents/
 ├── README.md
-├── post-agent/
-│   └── SKILL.md
-├── jobs-agent/
-│   └── SKILL.md
-├── article-agent/
-│   └── SKILL.md
-├── research-agent/
-│   └── SKILL.md
-├── design-agent/
-│   └── SKILL.md
-├── profile-agent/
-│   └── SKILL.md
-├── orchestrator/
-│   └── SKILL.md
+├── install.sh
+├── post-agent/SKILL.md
+├── jobs-agent/SKILL.md
+├── article-agent/SKILL.md
+├── research-agent/SKILL.md
+├── design-agent/SKILL.md
+├── profile-agent/SKILL.md
+├── orchestrator/SKILL.md
 └── output/              # Generated files (gitignored)
 ```
 
 ---
 
-## Usage Examples
-
-```
-"Draft a LinkedIn post about Appel Internat for CPEs"
-→ Triggers: linkedin-post-agent
-
-"Find full-stack developer jobs in Île-de-France"
-→ Triggers: linkedin-jobs-agent
-
-"Write an article about building a SaaS as an AED"
-→ Triggers: linkedin-article-agent
-
-"What's trending in EdTech this week?"
-→ Triggers: linkedin-research-agent
-
-"Design a post card for Appel Internat"
-→ Triggers: linkedin-design-agent
-
-"Audit and rewrite my LinkedIn headline"
-→ Triggers: linkedin-profile-agent
-
-"Prepare my LinkedIn week"
-→ Triggers: linkedin-orchestrator
-```
-
----
-
-Built for [Appel Internat](https://appel-internat.com) · Victor · Seine-et-Marne, France
+Built with ❤️ and Claude Code · [Victor Rubia Rodriguez](https://github.com/Victor-R-R)
