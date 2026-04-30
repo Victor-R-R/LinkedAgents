@@ -1,6 +1,6 @@
 # LinkedAgents
 
-> A suite of 6 specialized Claude Code agents + 1 orchestrator for managing your LinkedIn presence — from content creation to career discovery.
+> A suite of 7 specialized Claude Code agents + 1 orchestrator for managing your LinkedIn presence — from content creation to inbox management and career discovery.
 
 ## Agents
 
@@ -12,6 +12,7 @@
 | Research Agent | `research-agent/SKILL.md` | Curate trending content for your niche |
 | Design Agent | `design-agent/SKILL.md` | Create visuals, carousels, and brand identity |
 | Profile Agent | `profile-agent/SKILL.md` | Audit and rewrite your LinkedIn profile |
+| Messages Agent | `messages-agent/SKILL.md` | Read inbox, draft replies, and manage conversations via MCP |
 | Orchestrator | `orchestrator/SKILL.md` | Coordinate the full weekly workflow |
 
 ---
@@ -21,6 +22,8 @@
 - [Claude Code](https://claude.ai/code) installed and authenticated
 - Python 3.x (for API calls — included on macOS/Linux)
 - `jq` installed: `brew install jq` (macOS) or `apt install jq` (Linux)
+
+> **Messages Agent only** — uses the LinkedIn MCP server instead of the REST API. No LinkedIn developer token needed. Requires the `mcp__linkedin__*` tools to be available in your Claude Code session.
 
 ---
 
@@ -168,6 +171,12 @@ Once installed, trigger agents in Claude Code by describing what you want:
 "Audit and rewrite my LinkedIn headline"
 → Triggers: linkedin-profile-agent
 
+"Read my LinkedIn messages"
+→ Triggers: linkedin-messages-agent
+
+"Reply to [name] on LinkedIn"
+→ Triggers: linkedin-messages-agent
+
 "Prepare my LinkedIn week"
 → Triggers: linkedin-orchestrator
 ```
@@ -202,6 +211,7 @@ LinkedAgents/
 ├── research-agent/SKILL.md
 ├── design-agent/SKILL.md
 ├── profile-agent/SKILL.md
+├── messages-agent/SKILL.md
 ├── orchestrator/SKILL.md
 └── output/              # Generated files (gitignored)
 ```

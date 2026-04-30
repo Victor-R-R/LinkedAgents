@@ -15,6 +15,7 @@ AGENTS=(
   "research-agent:linkedin-research-agent"
   "design-agent:linkedin-design-agent"
   "profile-agent:linkedin-profile-agent"
+  "messages-agent:linkedin-messages-agent"
   "orchestrator:linkedin-orchestrator"
 )
 
