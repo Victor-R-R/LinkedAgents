@@ -213,38 +213,35 @@ All generated content is saved to `~/LinkedAgents/output/`:
 
 ## Connection Management (bulk invitations)
 
-The `scripts/get_invitations.py` script fetches your pending incoming connection requests from the LinkedIn invitation manager. It reuses your MCP session cookies — no separate login needed.
+Two scripts handle incoming connection requests. Both reuse the MCP server's stored cookies — no separate login needed.
+
+### `scripts/process_invitations.py` — Bulk accept in one session (recommended)
+
+Opens a single browser session, loads all pending invitations at once, and clicks Accept on each card directly — no per-profile navigation.
 
 ```bash
-# List pending invitations as JSON
-python3 scripts/get_invitations.py
+# Dry run — preview what would be accepted
+uvx --from linkedin-scraper-mcp python3 scripts/process_invitations.py --dry-run
 
-# Limit to 50 results
-python3 scripts/get_invitations.py --max-results 50
+# Accept up to 20 (daily hard cap)
+uvx --from linkedin-scraper-mcp python3 scripts/process_invitations.py --limit 20
 
-# Save to a file for processing
-python3 scripts/get_invitations.py --output ~/LinkedAgents/output/invitations.json
+# Accept only profiles matching keywords
+uvx --from linkedin-scraper-mcp python3 scripts/process_invitations.py --filter "EdTech,DRH,fondateur"
+
+# Save results
+uvx --from linkedin-scraper-mcp python3 scripts/process_invitations.py --output ~/LinkedAgents/output/results.json
 ```
 
-Output format:
-```json
-[
-  {
-    "username": "john-doe-12345",
-    "name": "John Doe",
-    "headline": "CTO at Startup · Paris",
-    "profile_path": "/in/john-doe-12345/"
-  }
-]
+### `scripts/get_invitations.py` — Inspect only
+
+Fetches the invitation list as JSON without accepting anything.
+
+```bash
+uvx --from linkedin-scraper-mcp python3 scripts/get_invitations.py --output ~/LinkedAgents/output/invitations.json
 ```
 
-To accept a pending invitation, ask Claude Code:
-```
-"Accept the LinkedIn connection request from john-doe-12345"
-→ Uses: connect_with_person("john-doe-12345")
-```
-
-> **Rate limit**: LinkedIn allows ~20 connection actions per day. For bulk operations (200+), spread over multiple days.
+> **Rate limit**: LinkedIn allows ~20 connection actions per day. For 200+ invitations, run the script daily — it always picks the next batch.
 
 ---
 
@@ -263,7 +260,8 @@ LinkedAgents/
 ├── messages-agent/SKILL.md
 ├── orchestrator/SKILL.md
 ├── scripts/
-│   └── get_invitations.py   # Fetch pending connection requests
+│   ├── get_invitations.py       # Inspect pending connection requests (read-only)
+│   └── process_invitations.py  # Bulk-accept invitations in one session
 └── output/                  # Generated files (gitignored)
 ```
 
