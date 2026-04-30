@@ -36,8 +36,23 @@ Gestion complète de la messagerie LinkedIn via les outils MCP natifs.
 | `mcp__linkedin__get_inbox` | Récupère la liste des conversations récentes |
 | `mcp__linkedin__get_conversation` | Lit le fil complet d'une conversation |
 | `mcp__linkedin__search_conversations` | Cherche dans toutes les conversations par mot-clé |
-| `mcp__linkedin__send_message` | Envoie un message dans une conversation |
+| `mcp__linkedin__send_message` | Envoie un message via la compose overlay (contacts directs) |
+| `mcp__linkedin__reply_in_thread` | Répond dans un fil existant (contourne les restrictions) |
+| `mcp__linkedin__connect_with_person` | Envoie une demande de connexion avec note (max 300 chars) |
 | `mcp__linkedin__get_person_profile` | Récupère le profil de l'interlocuteur pour contexte |
+
+### Quel outil utiliser pour envoyer un message ?
+
+```
+Contact existant (fil actif) → reply_in_thread(thread_id, linkedin_username)
+Contact connecté (pas de fil) → send_message(linkedin_username)  [si composer_unavailable → connect_with_person]
+Nouveau contact non connecté  → connect_with_person(linkedin_username, note)
+```
+
+**`reply_in_thread` vs `send_message`** :
+- `send_message` utilise la compose overlay LinkedIn → échoue si la personne bloque les messages de non-relations (retourne `composer_unavailable`)
+- `reply_in_thread` navigue via le profil → recherche dans l'inbox → clique sur le fil → ouvre le volet thread React → fonctionne pour tous les contacts avec qui tu as déjà échangé, indépendamment des paramètres de confidentialité
+- `reply_in_thread` requiert `linkedin_username` pour un lookup fiable (le thread_id seul ne suffit pas en mode headless)
 
 ---
 
