@@ -4,16 +4,16 @@
 
 ## Agents
 
-| Agent | Skill | Purpose |
-|-------|-------|---------|
-| Post Agent | `post-agent/SKILL.md` | Draft and publish LinkedIn posts via API |
-| Jobs Agent | `jobs-agent/SKILL.md` | Search, score, and act on job listings |
-| Article Agent | `article-agent/SKILL.md` | Write long-form LinkedIn articles |
-| Research Agent | `research-agent/SKILL.md` | Curate trending content for your niche |
-| Design Agent | `design-agent/SKILL.md` | Create visuals, carousels, and brand identity |
-| Profile Agent | `profile-agent/SKILL.md` | Audit and rewrite your LinkedIn profile |
-| Messages Agent | `messages-agent/SKILL.md` | Read inbox, draft replies, and manage conversations via MCP |
-| Orchestrator | `orchestrator/SKILL.md` | Coordinate the full weekly workflow |
+| Agent | Skill | Purpose | Requires MCP |
+|-------|-------|---------|:------------:|
+| Post Agent | `post-agent/SKILL.md` | Draft and publish LinkedIn posts via API | — |
+| Jobs Agent | `jobs-agent/SKILL.md` | Search, score, and act on job listings | ✅ |
+| Article Agent | `article-agent/SKILL.md` | Write long-form LinkedIn articles | — |
+| Research Agent | `research-agent/SKILL.md` | Curate trending content for your niche | ✅ |
+| Design Agent | `design-agent/SKILL.md` | Create visuals, carousels, and brand identity | — |
+| Profile Agent | `profile-agent/SKILL.md` | Audit and rewrite your LinkedIn profile | ✅ |
+| Messages Agent | `messages-agent/SKILL.md` | Read inbox, draft replies, manage conversations | ✅ |
+| Orchestrator | `orchestrator/SKILL.md` | Coordinate the full weekly workflow | ✅ (partial) |
 
 ---
 
@@ -23,7 +23,43 @@
 - Python 3.x (for API calls — included on macOS/Linux)
 - `jq` installed: `brew install jq` (macOS) or `apt install jq` (Linux)
 
-> **Messages Agent only** — uses the LinkedIn MCP server instead of the REST API. No LinkedIn developer token needed. Requires the `mcp__linkedin__*` tools to be available in your Claude Code session.
+### LinkedIn MCP Server (required for inbox, messaging, and connection management)
+
+The **Messages Agent** and all connection-related features use the LinkedIn MCP server instead of the REST API. It controls a real browser session (Patchright) so no developer token is needed for these features.
+
+**Step 1 — Install the MCP server:**
+
+```bash
+# Install globally via uvx (recommended)
+uvx linkedin-scraper-mcp --login
+```
+
+This opens a browser window — log in to LinkedIn, then close the browser. Your session is saved to `~/.linkedin-mcp/`.
+
+**Step 2 — Add to Claude Code config:**
+
+```bash
+claude mcp add linkedin -- uvx linkedin-scraper-mcp
+```
+
+Or add manually to `~/.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "linkedin": {
+      "command": "uvx",
+      "args": ["linkedin-scraper-mcp"]
+    }
+  }
+}
+```
+
+**Step 3 — Verify:**
+
+Restart Claude Code. You should see `mcp__linkedin__*` tools available in your session.
+
+> The session is tied to your LinkedIn account. Each person using LinkedAgents needs their own MCP setup with their own credentials. Sessions expire periodically — re-run `uvx linkedin-scraper-mcp --login` to refresh.
 
 ---
 
@@ -199,6 +235,43 @@ All generated content is saved to `~/LinkedAgents/output/`:
 
 ---
 
+## Connection Management (bulk invitations)
+
+The `scripts/get_invitations.py` script fetches your pending incoming connection requests from the LinkedIn invitation manager. It reuses your MCP session cookies — no separate login needed.
+
+```bash
+# List pending invitations as JSON
+python3 scripts/get_invitations.py
+
+# Limit to 50 results
+python3 scripts/get_invitations.py --max-results 50
+
+# Save to a file for processing
+python3 scripts/get_invitations.py --output ~/LinkedAgents/output/invitations.json
+```
+
+Output format:
+```json
+[
+  {
+    "username": "john-doe-12345",
+    "name": "John Doe",
+    "headline": "CTO at Startup · Paris",
+    "profile_path": "/in/john-doe-12345/"
+  }
+]
+```
+
+To accept a pending invitation, ask Claude Code:
+```
+"Accept the LinkedIn connection request from john-doe-12345"
+→ Uses: connect_with_person("john-doe-12345")
+```
+
+> **Rate limit**: LinkedIn allows ~20 connection actions per day. For bulk operations (200+), spread over multiple days.
+
+---
+
 ## Project Structure
 
 ```
@@ -213,7 +286,9 @@ LinkedAgents/
 ├── profile-agent/SKILL.md
 ├── messages-agent/SKILL.md
 ├── orchestrator/SKILL.md
-└── output/              # Generated files (gitignored)
+├── scripts/
+│   └── get_invitations.py   # Fetch pending connection requests
+└── output/                  # Generated files (gitignored)
 ```
 
 ---
