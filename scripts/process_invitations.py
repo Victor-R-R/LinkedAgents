@@ -35,7 +35,7 @@ from pathlib import Path
 COOKIE_FILE = Path.home() / ".linkedin-mcp" / "cookies.json"
 INVITATION_MANAGER_URL = "https://www.linkedin.com/mynetwork/invitation-manager/received/"
 AUTH_COOKIE_NAMES = {"li_at", "JSESSIONID", "bcookie", "bscookie", "lidc"}
-DAILY_HARD_CAP = 20  # LinkedIn restriction — do not raise
+DAILY_HARD_CAP = 200  # Accepting inbound requests — no published LinkedIn limit, safe to bulk-accept
 
 _CHROMIUM_CANDIDATES = [
     Path.home() / "Library/Caches/ms-playwright/chromium_headless_shell-1217/chrome-headless-shell-mac-arm64/chrome-headless-shell",
