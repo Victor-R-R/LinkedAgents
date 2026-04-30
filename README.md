@@ -20,69 +20,45 @@
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) installed and authenticated
-- Python 3.x (for API calls — included on macOS/Linux)
-- `jq` installed: `brew install jq` (macOS) or `apt install jq` (Linux)
+- [uv](https://docs.astral.sh/uv/) — the install script installs it automatically if missing
 
-### LinkedIn MCP Server (required for inbox, messaging, and connection management)
+> The LinkedIn MCP server (`linkedin-scraper-mcp`) is installed and configured automatically by `install.sh`. No manual setup needed.
 
-The **Messages Agent** and all connection-related features use the LinkedIn MCP server instead of the REST API. It controls a real browser session (Patchright) so no developer token is needed for these features.
-
-**Step 1 — Install the MCP server:**
-
-```bash
-# Install globally via uvx (recommended)
-uvx linkedin-scraper-mcp --login
-```
-
-This opens a browser window — log in to LinkedIn, then close the browser. Your session is saved to `~/.linkedin-mcp/`.
-
-**Step 2 — Add to Claude Code config:**
-
-```bash
-claude mcp add linkedin -- uvx linkedin-scraper-mcp
-```
-
-Or add manually to `~/.claude/settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "linkedin": {
-      "command": "uvx",
-      "args": ["linkedin-scraper-mcp"]
-    }
-  }
-}
-```
-
-**Step 3 — Verify:**
-
-Restart Claude Code. You should see `mcp__linkedin__*` tools available in your session.
-
-> The session is tied to your LinkedIn account. Each person using LinkedAgents needs their own MCP setup with their own credentials. Sessions expire periodically — re-run `uvx linkedin-scraper-mcp --login` to refresh.
+> Each person needs their own LinkedIn account credentials. Sessions are stored locally in `~/.linkedin-mcp/` and are not shared.
 
 ---
 
 ## Installation
 
-### Option 1 — One-liner (recommended)
+### One-liner (recommended)
 
 ```bash
 git clone https://github.com/Victor-R-R/LinkedAgents.git && cd LinkedAgents && ./install.sh
 ```
 
-The script checks for Claude Code, installs all agents to `~/.claude/skills/`, and prints next steps.
+The script handles everything in 4 steps:
+1. Checks Claude Code is installed
+2. Installs `uv` if missing
+3. Registers the LinkedIn MCP server in Claude Code + opens a browser for LinkedIn login
+4. Copies all agent skills to `~/.claude/skills/`
 
-### Option 2 — Manual (pick only the agents you want)
+After install, **restart Claude Code** to activate the MCP server.
+
+### Manual (pick only the agents you want)
 
 ```bash
-# Example: install only the post agent and design agent
+# Register the MCP server
+claude mcp add linkedin -- uvx linkedin-scraper-mcp
+
+# Log in once (opens a browser)
+uvx linkedin-scraper-mcp --login
+
+# Copy specific agent skills
 mkdir -p ~/.claude/skills/linkedin-post-agent
 cp post-agent/SKILL.md ~/.claude/skills/linkedin-post-agent/SKILL.md
-
-mkdir -p ~/.claude/skills/linkedin-design-agent
-cp design-agent/SKILL.md ~/.claude/skills/linkedin-design-agent/SKILL.md
 ```
+
+> Session refresh: if the MCP stops working, re-run `uvx linkedin-scraper-mcp --login`.
 
 ---
 
