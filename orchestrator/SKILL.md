@@ -48,7 +48,7 @@ fi
 # Check if LINKEDIN_PERSON_ID is set
 if [ -z "$LINKEDIN_PERSON_ID" ]; then
   echo "⚠️  LINKEDIN_PERSON_ID not set."
-  echo "    Get it with: curl -s -H \"Authorization: Bearer \$LINKEDIN_TOKEN\" -H \"LinkedIn-Version: 202410\" https://api.linkedin.com/v2/userinfo | jq '.sub'"
+  echo "    Get it with: curl -s -H \"Authorization: Bearer \$LINKEDIN_TOKEN\" -H \"LinkedIn-Version: 202503\" https://api.linkedin.com/v2/userinfo | jq '.sub'"
 fi
 
 # Check token age if LINKEDIN_TOKEN_DATE is set (macOS-compatible)
@@ -203,7 +203,7 @@ POST_TEXT_ESCAPED=$(echo "$POST_TEXT" | python3 -c "import sys, json; print(json
 RESPONSE=$(curl -s --fail -X POST "https://api.linkedin.com/rest/posts" \
   -H "Authorization: Bearer $LINKEDIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "LinkedIn-Version: 202410" \
+  -H "LinkedIn-Version: 202503" \
   -H "X-Restli-Protocol-Version: 2.0.0" \
   -d "{
     \"author\": \"urn:li:person:${LINKEDIN_PERSON_ID}\",
@@ -218,13 +218,16 @@ RESPONSE=$(curl -s --fail -X POST "https://api.linkedin.com/rest/posts" \
     \"isReshareDisabledByAuthor\": false
   }")
 
-if [ $? -ne 0 ]; then
-  echo "❌ Publish failed."
+HTTP_CODE=$(echo "$RESPONSE_FULL" | grep "^HTTP" | awk '{print $2}')
+# Post URN is in x-restli-id header — NOT in response body
+POST_URN=$(echo "$RESPONSE_FULL" | grep -i "x-restli-id:" | awk '{print $2}' | tr -d '\r')
+
+if [ "$HTTP_CODE" != "201" ]; then
+  echo "❌ Publish failed — HTTP $HTTP_CODE"
   echo "   Check LINKEDIN_TOKEN (expires after 60 days) and LINKEDIN_PERSON_ID."
-  echo "   Response: $RESPONSE"
 else
-  POST_ID=$(echo "$RESPONSE" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('id','unknown'))" 2>/dev/null || echo "unknown")
-  echo "✅ Published — Post ID: $POST_ID"
+  echo "✅ Published — Post URN: $POST_URN"
+  echo "   Save URN to delete later: $POST_URN"
 fi
 ```
 
