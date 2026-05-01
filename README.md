@@ -145,18 +145,46 @@ The orchestrator warns you automatically when your token is within 10 days of ex
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Publish posts | ✅ | `w_member_social` scope, `/rest/posts` endpoint |
+| Publish text posts | ✅ | `w_member_social` scope, `/rest/posts` endpoint |
+| Publish video posts | ✅ | Multipart upload via `/rest/videos` — see below |
 | Read own profile (basic) | ✅ | `/v2/userinfo` — name, sub (Person ID), email |
 | Edit profile sections | ❌ | Not available publicly — manual edits only |
 | List/read own posts | ❌ | Requires `r_member_social` (partner program only) |
 | Job search API | ❌ | Partner Program required — fallback to web search |
 | Follower analytics | ❌ | Partner Program required |
 
-**Working API versions (tested April 2026):**
+**Working API versions (tested May 2026):**
 - `/rest/posts` (publish) → `LinkedIn-Version: 202503`
+- `/rest/videos` (video upload) → `LinkedIn-Version: 202503`
 - `/v2/userinfo` (Person ID) → `LinkedIn-Version: 202504`
 
 > Versions `202504+` return HTTP 426 on `/rest/posts`. Use `202503` exactly.
+
+---
+
+## Video Publishing
+
+LinkedIn video upload uses a **3-step multipart flow** — not a simple PUT. `publish_video.py` handles the full flow automatically.
+
+```bash
+python3 publish_video.py
+```
+
+### How it works
+
+1. **`initializeUpload`** — LinkedIn returns an array of `uploadInstructions`, each with a pre-signed URL and byte range (typically 3 parts for ~9 MB)
+2. **Multipart PUT** — each part is uploaded to its pre-signed URL with only its byte slice; no `Authorization` header needed (auth is embedded in the URL)
+3. **`finalizeUpload`** — called with the ETags returned by each part; LinkedIn returns 200 and begins video transcoding
+4. **Create post** — post is created referencing the video URN; video becomes visible once transcoding completes (~2–5 min)
+
+### Known gotchas
+
+- `initializeUpload` returns URLs with embedded `\n` (base64 line breaks) — strip them before use
+- LinkedIn does **not** return `uploadToken` in the current API version (202503); pass `""` to `finalizeUpload`
+- Upload URLs are pre-signed — do **not** pass `Authorization: Bearer` to them
+- ETags returned by LinkedIn look like `/ambry-video/signedId/...bin`, not standard HTTP ETags
+- Video format: `.mov` (QuickTime) is accepted; transcoding takes 2–5 minutes after `finalizeUpload`
+- The post is created immediately after upload; the video thumbnail appears once transcoding is done
 
 ---
 
@@ -251,6 +279,7 @@ uvx --from linkedin-scraper-mcp python3 scripts/get_invitations.py --output ~/Li
 LinkedAgents/
 ├── README.md
 ├── install.sh
+├── publish_video.py             # Publish a video post via LinkedIn API (multipart upload)
 ├── post-agent/SKILL.md
 ├── jobs-agent/SKILL.md
 ├── article-agent/SKILL.md
@@ -262,7 +291,7 @@ LinkedAgents/
 ├── scripts/
 │   ├── get_invitations.py       # Inspect pending connection requests (read-only)
 │   └── process_invitations.py  # Bulk-accept invitations in one session
-└── output/                  # Generated files (gitignored)
+└── output/                      # Generated files (gitignored)
 ```
 
 ---
