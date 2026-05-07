@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(agent-browser open *)",
+      "Bash(agent-browser wait *)",
+      "Bash(agent-browser eval *)",
+      "Bash(agent-browser close *)",
+      "Bash(agent-browser snapshot *)",
+      "WebFetch(domain:www.linkedin.com)",
+      "WebFetch(domain:fr.linkedin.com)",
+      "Bash(AGENT_BROWSER_HEADED=1 agent-browser open \"https://fr.linkedin.com/posts/mathieu-colla_le-dev-junior-est-pris-en-%C3%A9tau-dun-c%C3%B4t%C3%A9-activity-7458064848577425408-4OSj\")",
+      "Bash(agent-browser click *)",
+      "Bash(agent-browser type 'C'\\\\''est exactement ça. J'\\\\''ai remarqué en travaillant sur LinkedAgents comment les agents autonomes changent la donne pour les juniors — pas besoin d'\\\\''être senior pour builder quelque chose qui fonctionne à l'\\\\''échelle. *)",
+      "Bash(agent-browser fill @e31 'C'\\\\''est exactement ça. J'\\\\''ai remarqué en travaillant sur LinkedAgents comment les agents autonomes changent la donne pour les juniors — pas besoin d'\\\\''être senior pour builder quelque chose qui fonctionne à l'\\\\''échelle. *)",
+      "Bash(agent-browser screenshot *)"
+    ]
+  }
+}
